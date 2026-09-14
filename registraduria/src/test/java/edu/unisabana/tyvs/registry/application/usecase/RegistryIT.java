@@ -125,4 +125,31 @@ public class RegistryIT {
         assertEquals(RegisterResult.INVALID, result);
     }
 
+
+    @Test
+    public void shouldFindPersistedRecordById() throws Exception {
+        // Arrange
+        Person p = new Person("Carlos", 300, 45, Gender.MALE, true);
+        registry.registerVoter(p);
+
+        // Act
+        var found = repo.findById(300);
+
+        // Assert: presente y con los datos correctos (ejercita RegistryRecord)
+        assertTrue(found.isPresent());
+        assertEquals("Carlos", found.get().getName());
+        assertEquals(300, found.get().getId());
+        assertEquals(45, found.get().getAge());
+        assertTrue(found.get().isAlive());
+    }
+
+    @Test
+    public void shouldReturnEmptyWhenRecordDoesNotExist() throws Exception {
+        // Act
+        var found = repo.findById(999);
+
+        // Assert
+        assertTrue(found.isEmpty());
+    }
+
 }

@@ -116,4 +116,44 @@ class CertificadoServicePactTest {
         // Assert
         assertNull(certificado);
     }
+
+
+
+    /**
+     * Interaccion 3: un votante menor de edad responde UNDERAGE.
+     *
+     * Distinta de las dos anteriores porque agrega una tercera rama de
+     * respuesta del contrato (no solo VALID/DUPLICATED), sin que el
+     * consumidor necesite saber nada de la regla de edad: solo le importa
+     * que, si la respuesta no es "VALID", el certificado sea null.
+     */
+    @Pact(consumer = "certificados", provider = "registraduria")
+    public RequestResponsePact votanteMenorDeEdad(PactDslWithProvider builder) {
+        return builder
+                .given("no hay ningun votante registrado con id 902")
+                .uponReceiving("un registro de votante menor de edad")
+                .path("/register")
+                .method("POST")
+                .headers(JSON)
+                .body("{\"name\":\"Sara\",\"id\":902,\"age\":15,\"gender\":\"FEMALE\",\"alive\":true}")
+                .willRespondWith()
+                .status(200)
+                .body("UNDERAGE")
+                .toPact();
+    }
+
+    @Test
+    @PactTestFor(pactMethod = "votanteMenorDeEdad")
+    @DisplayName("No emite certificado cuando la Registraduria responde UNDERAGE")
+    void noEmiteCertificadoCuandoElVotanteEsMenorDeEdad(MockServer mockServer) {
+        // Arrange
+        CertificadoService servicio =
+                new CertificadoService(new RegistraduriaClient(mockServer.getUrl()));
+
+        // Act
+        String certificado = servicio.emitirCertificado(902, "Sara", 15, "FEMALE", true);
+
+        // Assert
+        assertNull(certificado);
+    }
 }

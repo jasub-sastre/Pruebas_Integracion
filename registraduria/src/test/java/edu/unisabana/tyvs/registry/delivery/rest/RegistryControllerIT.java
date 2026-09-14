@@ -79,20 +79,49 @@ public class RegistryControllerIT {
 
     @Test
     public void shouldReturnUnderageWhenPersonIsMinor() {
+        // Arrange + Act
         ResponseEntity<String> resp = register(
                 "{\"name\":\"Sara\",\"id\":102,\"age\":17,\"gender\":\"FEMALE\",\"alive\":true}");
 
+        // Assert
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertEquals("UNDERAGE", resp.getBody());
     }
 
     @Test
     public void shouldReturnDeadWhenPersonIsNotAlive() {
+        // Arrange + Act
         ResponseEntity<String> resp = register(
                 "{\"name\":\"Pedro\",\"id\":103,\"age\":50,\"gender\":\"MALE\",\"alive\":false}");
 
+        // Assert
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertEquals("DEAD", resp.getBody());
+    }
+
+    @Test
+    public void shouldReturnInvalidAgeWhenAgeIsImpossible() {
+        // Arrange: 121 anios esta fuera del rango biologicamente posible (INVALID_AGE),
+        // que es una clase de equivalencia distinta de UNDERAGE.
+        ResponseEntity<String> resp = register(
+                "{\"name\":\"Old\",\"id\":105,\"age\":121,\"gender\":\"MALE\",\"alive\":true}");
+
+        // Assert
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("INVALID_AGE", resp.getBody());
+    }
+
+    @Test
+    public void shouldReturnInvalidWhenIdIsNotPositive() {
+        // Arrange: id <= 0 es un dato de persona invalido segun el dominio,
+        // pero sigue siendo un JSON bien formado -> el caso de uso responde
+        // INVALID con 200, no es un error HTTP.
+        ResponseEntity<String> resp = register(
+                "{\"name\":\"Nadie\",\"id\":0,\"age\":30,\"gender\":\"MALE\",\"alive\":true}");
+
+        // Assert
+        assertEquals(HttpStatus.OK, resp.getStatusCode());
+        assertEquals("INVALID", resp.getBody());
     }
 
     @Test
@@ -103,6 +132,23 @@ public class RegistryControllerIT {
         ResponseEntity<String> resp = register(
                 "{\"name\":\"Eva\",\"id\":104,\"age\":30,\"gender\":\"X\",\"alive\":true}");
 
+        // Assert: status Y body, para confirmar que paso por
+        // handleInvalidArgument() y no por otro handler.
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("INVALID_INPUT", resp.getBody());
+    }
+
+    @Test
+    public void shouldReturnBadRequestWhenJsonIsMalformed() {
+        // Arrange: JSON con una coma de mas / sintaxis rota.
+        // Ejercita handleMalformedJson(), la otra rama del RestControllerAdvice.
+        String brokenJson = "{\"name\":\"Eva\",\"id\":106,\"age\":30,,}";
+
+        // Act
+        ResponseEntity<String> resp = register(brokenJson);
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
+        assertEquals("MALFORMED_JSON", resp.getBody());
     }
 }

@@ -78,4 +78,10 @@ class RegistraduriaProviderPactIT {
     void conVotante901() {
         registry.registerVoter(new Person("Luis", 901, 40, Gender.MALE, true));
     }
+
+    // Estado para la interaccion "un registro de votante menor de edad".
+    @State("no hay ningun votante registrado con id 902")
+    void sinVotante902() throws Exception {
+        repo.deleteAll();
+    }
 }
