@@ -219,4 +219,28 @@ public class RegistryWithMockTest {
         assertEquals(RegisterResult.VALID, registry.registerVoter(p));
         verify(repo).save(15, "Centenaria", Registry.MAX_AGE, true);
     }
+
+
+    /**
+     * Caso de prueba: fallo de infraestructura al PERSISTIR (no al consultar).
+     * antes se había probado cuando se fallaba al consultar, el id, por ejemplo.
+     * Sin embargo, ahora se prueba cuando la db arroja error al guardar.
+     */
+    @Test
+    public void shouldWrapPersistenceFailureWhenSaveFails() throws Exception {
+        // Arrange: existsById pasa, pero save() falla
+        when(repo.existsById(16)).thenReturn(false);
+        doThrow(new java.sql.SQLException("violacion de restriccion"))
+                .when(repo).save(16, "Omar", 30, true);
+        Person p = new Person("Omar", 16, 30, Gender.MALE, true);
+
+        // Act y Assert
+        try {
+            registry.registerVoter(p);
+            fail("Se esperaba RegistryPersistenceException");
+        } catch (RegistryPersistenceException expected) {
+            assertEquals(java.sql.SQLException.class, expected.getCause().getClass());
+        }
+        verify(repo).save(16, "Omar", 30, true);
+    }
 }
